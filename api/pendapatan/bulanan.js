@@ -3,29 +3,40 @@ import pool from "../../lib/db.js";
 
 async function bulanan(req, res) {
   if (req.method === "GET") {
-    const { dari, sampai } = req.query;
+    const { bulan } = req.query;
 
-    if (!dari || !sampai) {
+    if (!bulan) {
       return res.status(400).json({ error: "Parameter 'bulan tahun' wajib diisi (format: YYYY-MM-DD)" });
     }
 
     try {
       const query = `
-       SELECT 
-        a.tanggal::date AS tanggal,
-        TO_CHAR(MIN(a.tanggal), 'HH24:MI:SS') AS jam,
-        SUM(DISTINCT a.total_harga) AS total,
-        COALESCE(SUM(b.total_harga), 0) AS domba,
-        COALESCE(SUM(c.total_harga), 0) AS pakan
-      FROM pemasukan a
-      LEFT JOIN penjualan_domba b ON b.pemasukan_id = a.id
-      LEFT JOIN penjualan_pakan c ON c.pemasukan_id = a.id
-      WHERE a.tanggal::date BETWEEN $1 AND $2
-      GROUP BY a.tanggal::date
-      ORDER BY a.tanggal::date;
+      SELECT
+          tanggal_hari :: date AS tanggal,
+          COALESCE(SUM(p.total_harga), 0) AS total_pemasukan,
+          COALESCE(SUM(l.total_harga), 0) AS total_pengeluaran
+      FROM
+          generate_series(
+              DATE_TRUNC('month',  $1::date),
+              (
+                  DATE_TRUNC('month',  $1::date) + INTERVAL '1 month - 1 day'
+              ) :: date,
+              INTERVAL '1 day'
+          ) AS tanggal_hari
+          LEFT JOIN pemasukan p ON p.tanggal :: date = tanggal_hari :: date
+          AND p.accout_uid = '1'
+          LEFT JOIN pengeluaran l ON l.tanggal :: date = tanggal_hari :: date
+          AND l.accout_uid = '1'
+      GROUP BY
+          tanggal_hari
+      HAVING
+          SUM(p.total_harga) IS NOT NULL
+          OR SUM(l.total_harga) IS NOT NULL
+      ORDER BY
+          tanggal_hari;
       `;
 
-      const pendapatan = await pool.query(query, [dari, sampai]);
+      const pendapatan = await pool.query(query, [bulan]);
       res.status(200).json(pendapatan.rows);
     } catch (error) {
       console.error("Gagal mengambil pendapatan:", error);
