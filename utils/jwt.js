@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { SECRET } from '../config';
+import { SECRET } from '../config.js';
 
 export function generateToken(payload) {
   return jwt.sign(payload, SECRET, { expiresIn: '1h' });
