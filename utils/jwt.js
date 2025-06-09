@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
-
-const SECRET = 'rahasia_cinta_kita_123';
+import { SECRET } from '../config';
 
 export function generateToken(payload) {
   return jwt.sign(payload, SECRET, { expiresIn: '1h' });
