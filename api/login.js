@@ -1,5 +1,5 @@
 import { parseBody } from "../utils/bodyParser.js";
-import pool from "../lib/db.js"; 
+import pool from "../lib/db.js";
 import bcrypt from "bcryptjs";
 import { generateToken } from "../utils/jwt.js";
 
@@ -16,15 +16,23 @@ export default async function handler(req, res) {
       [username]
     );
 
-    const user = result.rows[0];
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({ error: "Username atau password salah" });
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: "Username tidak ditemukan " });
     }
 
-    const token = generateToken({ id: user.id, username: user.username });
-    res.status(200).json({ message: "Login sukses!", token });
+    const user = result.rows[0];
+
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ error: "Password salah" });
+    }
+    console.log(user.uid)
+
+    const token = generateToken({ id: user.uid, username: user.username });
+
+    res.status(200).json({ message: "Login sukses! ", token });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Login gagal" });
+    console.error("Login error:", err);
+    res.status(500).json({ error: "Login gagal " });
   }
 }

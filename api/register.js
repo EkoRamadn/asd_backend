@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { username, password } = await parseBody(req);
+    const { username, email, password } = await parseBody(req);
 
     const result = await pool.query(
       "SELECT uid FROM account WHERE username = $1",
@@ -22,8 +22,8 @@ export default async function handler(req, res) {
     const hashed = await bcrypt.hash(password, 10);
 
     await pool.query(
-      "INSERT INTO account (username, password) VALUES ($1, $2)",
-      [username, hashed]
+      "INSERT INTO account (username,email, PASSWORD) VALUES ($1,$2, $3)",
+      [username, email, hashed]
     );
 
     res.status(201).json({ message: "Registrasi sukses! " });

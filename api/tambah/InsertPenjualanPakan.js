@@ -9,13 +9,14 @@ async function insertPenjualanPakan(req, res) {
 
   try {
     const { jenis_id, harga, jumblah, total_harga } = req.body;
+    const { id } = req.user;
 
     const pemasukanId = await getOrCreatePemasukanHariIni(total_harga);
 
     await pool.query(
-      `INSERT INTO penjualan_pakan(pemasukan_id, jenis_id, harga, jumblah, total_harga)
+      `INSERT INTO penjualan_pakan( jenis_id, harga, jumblah, total_harga,account_uid)
        VALUES ($1, $2, $3, $4, $5)`,
-      [pemasukanId, jenis_id, harga, jumblah, total_harga]
+      [jenis_id, harga, jumblah, total_harga, id]
     );
 
     res.status(201).json({ message: "Penjualan pakan berhasil ditambahkan" });
