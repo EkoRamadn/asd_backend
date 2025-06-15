@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     const hashed = await bcrypt.hash(password, 10);
 
     await pool.query(
-      "INSERT INTO account (username,email, PASSWORD) VALUES ($1,$2, $3)",
+      "INSERT INTO account (username,email, password) VALUES ($1,$2, $3)",
       [username, email, hashed]
     );
 

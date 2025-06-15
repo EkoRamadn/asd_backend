@@ -6,6 +6,33 @@ async function harian(req, res) {
     const { tanggal } = req.query;
     const { id } = req.user;
 
+    const data = {
+      date: new Date(tanggal),
+      income: {
+        domba: {
+          jenis: [],
+          count: [],
+          pricelist: [],
+          price: []
+        },
+        pakan: {
+          jenis: [],
+          count: [],
+          priceList: [],
+          price: []
+        },
+        price: 0
+      },
+      expanse: {
+        bahan_baku: {
+          jenis: [],
+          count: [],
+          pricelist: [],
+          price: 0
+        }
+      }
+    };
+
     if (!tanggal) {
       return res.status(400).json({ error: "Parameter 'tanggal' wajib diisi (format: YYYY-MM-DD)" });
     }
@@ -118,7 +145,37 @@ FROM total_pengeluaran;
       `;
 
       const pendapatan = await pool.query(query, [tanggal, id]);
-      res.status(200).json(pendapatan.rows);
+
+
+      for (const row of pendapatan.rows) {
+        const kategori = row.kategori;
+
+        if (kategori === 'Penjualan Domba') {
+          data.income.domba.jenis.push(row.nama);
+          data.income.domba.count.push(row.jumblah);
+          data.income.domba.pricelist.push(row.harga);
+          data.income.domba.price.push(row.total_harga)
+          // data.income.domba.price += Number(row.total_harga);
+        } else if (kategori === 'Penjualan Pakan') {
+          data.income.pakan.jenis.push(row.nama);
+          data.income.pakan.count.push(row.jumblah);
+          data.income.pakan.priceList.push(row.harga);
+          data.income.pakan.price += Number(row.total_harga);
+        } else if (kategori === 'Pembelian Bahan Baku') {
+          data.expanse.bahan_baku.jenis.push(row.nama);
+          data.expanse.bahan_baku.count.push(row.jumblah);
+          data.expanse.bahan_baku.pricelist.push(row.harga);
+          data.expanse.bahan_baku.price.push(row.total_harga)
+          // data.expanse.bahan_baku.price += Number(row.total_harga);
+        } else if (kategori === 'TOTAL PEMASUKAN') {
+          data.income.price = Number(row.total_harga);
+        } else if (kategori === 'TOTAL PENGELUARAN') {
+          // Ini nggak disimpan ke data langsung, karena kita udah hitung `bahan_baku.price` sendiri
+          // Bisa kamu simpan kalau mau bandingkan total expense lainnya
+        }
+      }
+
+      res.status(200).json(data);
     } catch (error) {
       console.error("Gagal mengambil pendapatan:", error);
       res.status(500).json({ error: "Terjadi kesalahan di server" });
