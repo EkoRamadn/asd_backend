@@ -11,8 +11,8 @@ export default async function handler(req, res) {
     const { username, email, password } = await parseBody(req);
 
     const result = await pool.query(
-      "SELECT uid FROM account WHERE username = $1",
-      [username]
+      "SELECT uid FROM account WHERE email = $1",
+      [email]
     );
 
     if (result.rows.length > 0) {

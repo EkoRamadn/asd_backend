@@ -9,15 +9,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { username, password } = await parseBody(req);
+    const { email, password } = await parseBody(req);
 
     const result = await pool.query(
-      "SELECT * FROM account WHERE username = $1",
-      [username]
+      "SELECT * FROM account WHERE email = $1",
+      [email]
     );
 
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: "Username tidak ditemukan " });
+      return res.status(401).json({ error: "email tidak ditemukan " });
     }
 
     const user = result.rows[0];
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
 
     const token = generateToken({ id: user.uid, username: user.username });
 
-    res.status(200).json({ message: "Login sukses! ", token });
+    res.status(200).json({ username: user.username, email: user.email, message: "Login sukses! ", token });
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ error: "Login gagal " });
