@@ -10,10 +10,16 @@ async function harian(req, res) {
       date: new Date(tanggal),
       income: {
         domba: {
-          transaksi: []
+          jenis: [],
+          count: [],
+          pricelist: [],
+          price: []
         },
         pakan: {
-          transaksi: []
+          jenis: [],
+          count: [],
+          priceList: [],
+          price: []
         },
         price: 0
       },
@@ -145,29 +151,29 @@ FROM total_pengeluaran;
         const kategori = row.kategori;
 
         if (kategori === 'Penjualan Domba') {
-          data.income.domba.transaksi.push({
-            jenis: row.nama,
-            count: row.jumblah,
-            procelist: row.harga,
-            price: row.total_harga
-          });
+          data.income.domba.jenis.push(row.nama);
+          data.income.domba.count.push(row.jumblah);
+          data.income.domba.pricelist.push(row.harga);
+          data.income.domba.price.push(row.total_harga)
+          // data.income.domba.price += Number(row.total_harga);
         } else if (kategori === 'Penjualan Pakan') {
-          data.income.pakan.transaksi.push({
-            jenis: row.nama,
-            count: row.jumblah,
-            procelist: row.harga,
-            price: row.total_harga
-          });
+          data.income.pakan.jenis.push(row.nama);
+          data.income.pakan.count.push(row.jumblah);
+          data.income.pakan.priceList.push(row.harga);
+          data.income.pakan.price += Number(row.total_harga);
         } else if (kategori === 'Pembelian Bahan Baku') {
           data.expanse.bahan_baku.jenis.push(row.nama);
           data.expanse.bahan_baku.count.push(row.jumblah);
           data.expanse.bahan_baku.pricelist.push(row.harga);
-          data.expanse.bahan_baku.price += Number(row.total_harga);
+          data.expanse.bahan_baku.price.push(row.total_harga)
+          // data.expanse.bahan_baku.price += Number(row.total_harga);
         } else if (kategori === 'TOTAL PEMASUKAN') {
           data.income.price = Number(row.total_harga);
+        } else if (kategori === 'TOTAL PENGELUARAN') {
+          // Ini nggak disimpan ke data langsung, karena kita udah hitung `bahan_baku.price` sendiri
+          // Bisa kamu simpan kalau mau bandingkan total expense lainnya
         }
       }
-
 
       res.status(200).json(data);
     } catch (error) {
