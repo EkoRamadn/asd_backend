@@ -2,180 +2,131 @@ import { withAuth } from "../../middleware/authMiddleware.js";
 import pool from "../../lib/db.js";
 
 async function harian(req, res) {
-  if (req.method === "GET") {
-    const { tanggal } = req.query;
-    const { id } = req.user;
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
 
-    const data = {
-      date: new Date(tanggal),
-      income: {
-        domba: {
-          transaksi: []
-        },
-        pakan: {
-          transaksi: []
-        },
-        price: 0
-      },
-      expanse: {
-        bahan_baku: {
-          jenis: [],
-          count: [],
-          pricelist: [],
-          price: 0
-        }
-      }
-    };
+  const { tanggal } = req.query;
+  const { id } = req.user;
 
-    if (!tanggal) {
-      return res.status(400).json({ error: "Parameter 'tanggal' wajib diisi (format: YYYY-MM-DD)" });
+  if (!tanggal) {
+    return res.status(400).json({ error: "Parameter 'tanggal' wajib diisi (format: YYYY-MM-DD)" });
+  }
+
+  const data = {
+    date: new Date(tanggal),
+    income: {
+      domba: { transaksi: [] },
+      pakan: { transaksi: [] },
+      price: 0
+    },
+    expanse: {
+      bahan_baku: { transaksi: [] },
+      price: 0
     }
+  };
 
-    try {
-      const query = `
-        WITH 
-parameter AS (
-  SELECT 
-    CAST($1 AS DATE) AS tanggal,
-     CAST($2 AS INTEGER) AS account_uid
-),
+  try {
+    const query = `
+      WITH 
+      parameter AS (
+        SELECT CAST($1 AS DATE) AS tanggal, CAST($2 AS INTEGER) AS account_uid
+      ),
+      domba_transaksi AS (
+        SELECT 'Penjualan Domba' AS kategori, jd.jenis AS nama, pd.jumblah, pd.harga, pd.total_harga, p.tanggal
+        FROM penjualan_domba pd
+        JOIN jenis_domba jd ON pd.jenis_id = jd.id
+        JOIN pemasukan p ON pd.pemasukan_id = p.id
+        JOIN parameter param ON DATE(p.tanggal) = param.tanggal
+        WHERE p.account_uid = param.account_uid
+      ),
+      pakan_transaksi AS (
+        SELECT 'Penjualan Pakan' AS kategori, jp.jenis AS nama, pp.jumblah, pp.harga, pp.total_harga, p.tanggal
+        FROM penjualan_pakan pp
+        JOIN jenis_pakan jp ON pp.jenis_id = jp.id
+        JOIN pemasukan p ON pp.pemasukan_id = p.id
+        JOIN parameter param ON DATE(p.tanggal) = param.tanggal
+        WHERE p.account_uid = param.account_uid
+      ),
+      bahan_transaksi AS (
+        SELECT 'Pembelian Bahan Baku' AS kategori, bb.nama_bahan AS nama, pb.jumblah, pb.harga, pb.total_harga, p.tanggal
+        FROM pembelian_bahan_baku pb
+        JOIN bahan_baku bb ON pb.jenis_id = bb.id
+        JOIN pengeluaran p ON pb.pengeluaran_id = p.id
+        JOIN parameter param ON DATE(p.tanggal) = param.tanggal
+        WHERE p.account_uid = param.account_uid
+      ),
+      total_pemasukan AS (
+        SELECT SUM(total_harga) AS total_pemasukan
+        FROM pemasukan
+        JOIN parameter param ON DATE(pemasukan.tanggal) = param.tanggal
+        WHERE pemasukan.account_uid = param.account_uid
+      ),
+      total_pengeluaran AS (
+        SELECT SUM(total_harga) AS total_pengeluaran
+        FROM pengeluaran
+        JOIN parameter param ON DATE(pengeluaran.tanggal) = param.tanggal
+        WHERE pengeluaran.account_uid = param.account_uid
+      )
 
--- Detail penjualan domba
-domba_transaksi AS (
-  SELECT 
-    'Penjualan Domba' AS kategori,
-    jd.jenis AS nama,
-    pd.jumblah,
-    pd.harga,
-    pd.total_harga,
-    p.tanggal
-  FROM penjualan_domba pd
-  JOIN jenis_domba jd ON pd.jenis_id = jd.id
-  JOIN pemasukan p ON pd.pemasukan_id = p.id
-  JOIN parameter param ON DATE(p.tanggal) = param.tanggal
-  WHERE p.account_uid = param.account_uid
-),
+      SELECT * FROM (
+        SELECT kategori, nama, jumblah, harga, total_harga, tanggal FROM domba_transaksi
+        UNION ALL
+        SELECT kategori, nama, jumblah, harga, total_harga, tanggal FROM pakan_transaksi
+        UNION ALL
+        SELECT kategori, nama, jumblah, harga, total_harga, tanggal FROM bahan_transaksi
+      ) AS transaksi_hari_ini
 
--- Detail penjualan pakan
-pakan_transaksi AS (
-  SELECT 
-    'Penjualan Pakan' AS kategori,
-    jp.jenis AS nama,
-    pp.jumblah,
-    pp.harga,
-    pp.total_harga,
-    p.tanggal
-  FROM penjualan_pakan pp
-  JOIN jenis_pakan jp ON pp.jenis_id = jp.id
-  JOIN pemasukan p ON pp.pemasukan_id = p.id
-  JOIN parameter param ON DATE(p.tanggal) = param.tanggal
-  WHERE p.account_uid = param.account_uid
-),
+      UNION ALL
 
--- Detail pembelian bahan baku
-bahan_transaksi AS (
-  SELECT 
-    'Pembelian Bahan Baku' AS kategori,
-    bb.nama_bahan AS nama,
-    pb.jumblah,
-    pb.harga,
-    pb.total_harga,
-    p.tanggal
-  FROM pembelian_bahan_baku pb
-  JOIN bahan_baku bb ON pb.jenis_id = bb.id
-  JOIN pengeluaran p ON pb.pengeluaran_id = p.id
-  JOIN parameter param ON DATE(p.tanggal) = param.tanggal
-  WHERE p.account_uid = param.account_uid
-),
+      SELECT 'TOTAL PEMASUKAN', '', NULL, NULL, total_pemasukan, (SELECT tanggal FROM parameter) FROM total_pemasukan
+      UNION ALL
+      SELECT 'TOTAL PENGELUARAN', '', NULL, NULL, total_pengeluaran, (SELECT tanggal FROM parameter) FROM total_pengeluaran;
+    `;
 
--- Total pemasukan
-total_pemasukan AS (
-  SELECT SUM(total_harga) AS total_pemasukan
-  FROM pemasukan
-  JOIN parameter param ON DATE(pemasukan.tanggal) = param.tanggal
-  WHERE pemasukan.account_uid = param.account_uid
-),
+    const pendapatan = await pool.query(query, [tanggal, id]);
 
--- Total pengeluaran
-total_pengeluaran AS (
-  SELECT SUM(total_harga) AS total_pengeluaran
-  FROM pengeluaran
-  JOIN parameter param ON DATE(pengeluaran.tanggal) = param.tanggal
-  WHERE pengeluaran.account_uid = param.account_uid
-)
+    for (const row of pendapatan.rows) {
+      const { kategori, nama, jumblah, harga, total_harga } = row;
 
--- Gabungkan semua transaksi
-SELECT * FROM (
-  SELECT kategori, nama, jumblah, harga, total_harga, tanggal FROM domba_transaksi
-  UNION ALL
-  SELECT kategori, nama, jumblah, harga, total_harga, tanggal FROM pakan_transaksi
-  UNION ALL
-  SELECT kategori, nama, jumblah, harga, total_harga, tanggal FROM bahan_transaksi
-) AS transaksi_hari_ini
-
-UNION ALL
-
--- Tambahkan total pemasukan dan pengeluaran
-SELECT 
-  'TOTAL PEMASUKAN' AS kategori,
-  '' AS nama,
-  NULL AS jumblah,
-  NULL AS harga,
-  total_pemasukan,
-  (SELECT tanggal FROM parameter)
-FROM total_pemasukan
-
-UNION ALL
-
-SELECT 
-  'TOTAL PENGELUARAN' AS kategori,
-  '' AS nama,
-  NULL AS jumblah,
-  NULL AS harga,
-  total_pengeluaran,
-  (SELECT tanggal FROM parameter)
-FROM total_pengeluaran;
-
-      `;
-
-      const pendapatan = await pool.query(query, [tanggal, id]);
-
-
-      for (const row of pendapatan.rows) {
-        const kategori = row.kategori;
-
-        if (kategori === 'Penjualan Domba') {
+      switch (kategori) {
+        case 'Penjualan Domba':
           data.income.domba.transaksi.push({
-            jenis: row.nama,
-            count: row.jumblah,
-            procelist: row.harga,
-            price: row.total_harga
+            jenis: nama,
+            count: jumblah,
+            price_unit: harga,
+            price: total_harga
           });
-        } else if (kategori === 'Penjualan Pakan') {
+          break;
+        case 'Penjualan Pakan':
           data.income.pakan.transaksi.push({
-            jenis: row.nama,
-            count: row.jumblah,
-            procelist: row.harga,
-            price: row.total_harga
+            jenis: nama,
+            count: jumblah,
+            price_unit: harga,
+            price: total_harga
           });
-        } else if (kategori === 'Pembelian Bahan Baku') {
-          data.expanse.bahan_baku.jenis.push(row.nama);
-          data.expanse.bahan_baku.count.push(row.jumblah);
-          data.expanse.bahan_baku.pricelist.push(row.harga);
-          data.expanse.bahan_baku.price += Number(row.total_harga);
-        } else if (kategori === 'TOTAL PEMASUKAN') {
-          data.income.price = Number(row.total_harga);
-        }
+          break;
+        case 'Pembelian Bahan Baku':
+          data.expanse.bahan_baku.transaksi.push({
+            jenis: nama,
+            count: jumblah,
+            price_unit: harga,
+            price: total_harga
+          });
+          break;
+        case 'TOTAL PEMASUKAN':
+          data.income.price = Number(total_harga) || 0;
+          break;
+        case 'TOTAL PENGELUARAN':
+          data.expanse.price = Number(total_harga) || 0;
+          break;
       }
-
-
-      res.status(200).json(data);
-    } catch (error) {
-      console.error("Gagal mengambil pendapatan:", error);
-      res.status(500).json({ error: "Terjadi kesalahan di server" });
     }
-  } else {
-    res.status(405).json({ error: "Method Not Allowed" });
+
+    return res.status(200).json(data);
+  } catch (error) {
+    console.error("Gagal mengambil pendapatan:", error);
+    return res.status(500).json({ error: "Terjadi kesalahan di server" });
   }
 }
 
