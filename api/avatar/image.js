@@ -1,8 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
+import { withCORS } from '../../utils/withCORS';
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-export default async function image(req, res) {
+async function image(req, res) {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const filename = url.searchParams.get("file");
 
@@ -32,3 +33,5 @@ export default async function image(req, res) {
     res.statusCode = 200;
     res.end(Buffer.from(buffer));
 }
+
+export default withCORS(image)

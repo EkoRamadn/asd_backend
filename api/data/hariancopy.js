@@ -1,5 +1,6 @@
 import { withAuth } from "../../middleware/authMiddleware.js";
 import pool from "../../lib/db.js";
+import { withCORS } from "../../utils/withCORS.js";
 
 async function harian(req, res) {
   if (req.method === "GET") {
@@ -185,4 +186,4 @@ FROM total_pengeluaran;
   }
 }
 
-export default withAuth(harian);
+export default withCORS(withAuth(harian));

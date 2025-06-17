@@ -1,5 +1,6 @@
 import { withAuth } from "../../middleware/authMiddleware.js";
 import pool from "../../lib/db.js";
+import { withCORS } from "../../utils/withCORS.js";
 
 async function bulanan(req, res) {
   if (req.method === "GET") {
@@ -92,4 +93,4 @@ ORDER BY tanggal;
   }
 }
 
-export default withAuth(bulanan);
+export default withCORS(withAuth(bulanan));

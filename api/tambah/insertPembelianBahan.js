@@ -1,6 +1,7 @@
 import { getOrCreatePemasukanHariIni } from "../../utils/getOrCreatePemasukanHariIni.js";
 import { withAuth } from "../../middleware/authMiddleware.js";
 import pool from "../../lib/db.js";
+import { withCORS } from "../../utils/withCORS.js";
 
 async function insertPembelianBahan(req, res) {
     if (req.method !== "POST") {
@@ -26,4 +27,4 @@ async function insertPembelianBahan(req, res) {
     }
 }
 
-export default withAuth(insertPembelianBahan);
+export default withCORS(withAuth(insertPembelianBahan));

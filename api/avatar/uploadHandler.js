@@ -3,6 +3,7 @@ import { IncomingForm } from 'formidable';
 import { createClient } from '@supabase/supabase-js';
 import pool from '../../lib/db.js';
 import { withAuth } from '../../middleware/authMiddleware.js';
+import { withCORS } from '../../utils/withCORS.js';
 
 export const config = {
     api: {
@@ -77,4 +78,4 @@ async function uploadHandler(req, res) {
     });
 }
 
-export default withAuth(uploadHandler);
+export default withCORS(withAuth(uploadHandler));

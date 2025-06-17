@@ -2,8 +2,9 @@ import { parseBody } from "../utils/bodyParser.js";
 import pool from "../lib/db.js";
 import bcrypt from "bcryptjs";
 import { generateToken } from "../utils/jwt.js";
+import { withCORS } from "../utils/withCORS.js";
 
-export default async function handler(req, res) {
+async function login(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
@@ -36,3 +37,4 @@ export default async function handler(req, res) {
     res.status(500).json({ error: "Login gagal " });
   }
 }
+export default withCORS(login)
