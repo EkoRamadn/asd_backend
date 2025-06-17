@@ -18,14 +18,14 @@ async function uploadHandler(req, res) {
     form.parse(req, async (err, fields, files) => {
         if (err) {
             res.writeHead(500);
-            res.end('Upload gagal! 😣');
+            res.end('Upload gagal!');
             return;
         }
 
         const file = files.gambar;
         if (!file) {
             res.writeHead(400);
-            res.end('File tidak ditemukan! 😥');
+            res.end('File tidak ditemukan!');
             return;
         }
 
