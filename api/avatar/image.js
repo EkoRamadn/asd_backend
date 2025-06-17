@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { withCORS } from '../../utils/withCORS';
+import { withCORS } from '../../utils/withCORS.js';
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
