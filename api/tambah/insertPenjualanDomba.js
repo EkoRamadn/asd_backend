@@ -7,16 +7,19 @@ async function insertPenjualanDomba(req, res) {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
+
+
+
   try {
-    const { jenis_id, harga, jumblah, total_harga } = req.body;
+    const { jenisDomba, kondisi, jumlahDomba, hargaDomba, totalDomba } = req.body;
     const { id } = req.user
 
-    const pemasukanId = await getOrCreatePemasukanHariIni(total_harga);
+    // const pemasukanId = await getOrCreatePemasukanHariIni(totalDomba);
 
     await pool.query(
-      `INSERT INTO penjualan_domba( jenis_id, harga, jumblah, total_harga, account_uid)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [jenis_id, harga, jumblah, total_harga, id]
+      `INSERT INTO penjualan_domba( jenis_id, harga, jumblah, total_harga, account_uid, kondisi_domba)
+       VALUES ($1, $2, $3, $4, $5 ,$6)`,
+      [jenisDomba, hargaDomba, jumlahDomba, totalDomba, id, kondisi]
     );
     console.log(id)
 
