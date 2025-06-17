@@ -14,14 +14,14 @@ async function insertPembelianBahan(req, res) {
         const pemasukanId = await getOrCreatePemasukanHariIni(total_harga);
 
         await pool.query(
-            `INSERT INTO penjualan_pakan( jenis_id, harga, jumblah, total_harga,account_uid)
+            `INSERT INTO pembelian_bahan_baku( jenis_id, harga, jumblah, total_harga,account_uid)
        VALUES ($1, $2, $3, $4, $5)`,
             [jenis_id, harga, jumblah, total_harga, id]
         );
 
-        res.status(201).json({ message: "Penjualan pakan berhasil ditambahkan" });
+        res.status(201).json({ message: "pembelian bahan berhasil ditambahkan" });
     } catch (error) {
-        console.error("Gagal insert penjualan pakan:", error);
+        console.error("Gagal insert pebelian bahan:", error);
         res.status(500).json({ message: error });
     }
 }
