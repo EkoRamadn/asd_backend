@@ -10,7 +10,7 @@ async function insertPenjualanDomba(req, res) {
     try {
         const { id } = req.user
         const data = await pool.query(
-            `SELECT username,email FROM account WHERE uid=$1`,
+            `SELECT a.username,a.email,av.file FROM account a LEFT JOIN avatar av ON a.uid = av.account_uid WHERE uid=$1`,
             [id]
         );
         console.log(id)
