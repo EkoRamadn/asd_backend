@@ -33,15 +33,18 @@ async function harian(req, res) {
         SELECT CAST($1 AS DATE) AS tanggal, CAST($2 AS INTEGER) AS account_uid
       ),
       domba_transaksi AS (
-        SELECT 'Penjualan Domba' AS kategori, jd.jenis AS nama, pd.jumblah, pd.harga, pd.total_harga, p.tanggal
+        SELECT 'Penjualan Domba' AS kategori, jd.jenis AS nama, kd.kondisi AS kondisi, 
+               pd.jumblah, pd.harga, pd.total_harga, p.tanggal
         FROM penjualan_domba pd
         JOIN jenis_domba jd ON pd.jenis_id = jd.id
+        JOIN kondisi_domba kd ON pd.kondisi_domba = kd.id
         JOIN pemasukan p ON pd.pemasukan_id = p.id
         JOIN parameter param ON DATE(p.tanggal) = param.tanggal
         WHERE p.account_uid = param.account_uid
       ),
       pakan_transaksi AS (
-        SELECT 'Penjualan Pakan' AS kategori, jp.jenis AS nama, pp.jumblah, pp.harga, pp.total_harga, p.tanggal
+        SELECT 'Penjualan Pakan' AS kategori, jp.jenis AS nama, NULL AS kondisi,
+               pp.jumblah, pp.harga, pp.total_harga, p.tanggal
         FROM penjualan_pakan pp
         JOIN jenis_pakan jp ON pp.jenis_id = jp.id
         JOIN pemasukan p ON pp.pemasukan_id = p.id
@@ -49,7 +52,8 @@ async function harian(req, res) {
         WHERE p.account_uid = param.account_uid
       ),
       bahan_transaksi AS (
-        SELECT 'Pembelian Bahan Baku' AS kategori, bb.nama_bahan AS nama, pb.jumblah, pb.harga, pb.total_harga, p.tanggal
+        SELECT 'Pembelian Bahan Baku' AS kategori, bb.nama_bahan AS nama, NULL AS kondisi,
+               pb.jumblah, pb.harga, pb.total_harga, p.tanggal
         FROM pembelian_bahan_baku pb
         JOIN bahan_baku bb ON pb.jenis_id = bb.id
         JOIN pengeluaran p ON pb.pengeluaran_id = p.id
@@ -70,29 +74,30 @@ async function harian(req, res) {
       )
 
       SELECT * FROM (
-        SELECT kategori, nama, jumblah, harga, total_harga, tanggal FROM domba_transaksi
+        SELECT kategori, nama, kondisi, jumblah, harga, total_harga, tanggal FROM domba_transaksi
         UNION ALL
-        SELECT kategori, nama, jumblah, harga, total_harga, tanggal FROM pakan_transaksi
+        SELECT kategori, nama, kondisi, jumblah, harga, total_harga, tanggal FROM pakan_transaksi
         UNION ALL
-        SELECT kategori, nama, jumblah, harga, total_harga, tanggal FROM bahan_transaksi
+        SELECT kategori, nama, kondisi, jumblah, harga, total_harga, tanggal FROM bahan_transaksi
       ) AS transaksi_hari_ini
 
       UNION ALL
 
-      SELECT 'TOTAL PEMASUKAN', '', NULL, NULL, total_pemasukan, (SELECT tanggal FROM parameter) FROM total_pemasukan
+      SELECT 'TOTAL PEMASUKAN', '', '', NULL, NULL, total_pemasukan, (SELECT tanggal FROM parameter) FROM total_pemasukan
       UNION ALL
-      SELECT 'TOTAL PENGELUARAN', '', NULL, NULL, total_pengeluaran, (SELECT tanggal FROM parameter) FROM total_pengeluaran;
+      SELECT 'TOTAL PENGELUARAN', '', '', NULL, NULL, total_pengeluaran, (SELECT tanggal FROM parameter) FROM total_pengeluaran;
     `;
 
     const pendapatan = await pool.query(query, [tanggal, id]);
 
     for (const row of pendapatan.rows) {
-      const { kategori, nama, jumblah, harga, total_harga } = row;
+      const { kategori, nama, kondisi, jumblah, harga, total_harga } = row;
 
       switch (kategori) {
         case 'Penjualan Domba':
           data.income.domba.transaksi.push({
             jenis: nama,
+            kondisi: kondisi || null,
             count: jumblah,
             price_unit: harga,
             price: total_harga
